@@ -24,6 +24,7 @@ class Observer {
       configurable: true,
       get () {
         // 收集依赖
+        // Dep.target实际就是watcher实例
         Dep.target && dep.addSub(Dep.target)
         // 这里不能用obj[key]，因为会无限的触发get方法造成死循环
         // obj[key] -> get -> return obj[key] ->get

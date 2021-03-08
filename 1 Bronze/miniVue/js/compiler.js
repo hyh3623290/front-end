@@ -70,12 +70,15 @@ class Compiler {
     let value = node.textContent
     if (reg.test(value)) {
       let key = RegExp.$1.trim()
+       // 这里会触发Vue的get，Vue的get会触发data[key]，又会触发Observer的get
       node.textContent = value.replace(reg, this.vm[key])
 
-      // 创建watcher对象，当数据改变更新视图
+      // 创建watcher对象，当数据改变更新视图，所有依赖数据的地方都会创建watcher对象
       new Watcher(this.vm, key, (newValue) => {
         node.textContent = newValue
       })
+      // watcher会访问vm[key],触发Vue的get，再触发Observer的get
+      // watcher给Dep.target设置了值
     }
   }
   // 判断元素属性是否是指令
