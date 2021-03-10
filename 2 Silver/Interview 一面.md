@@ -290,6 +290,389 @@
 
 # CSS面试题
 
+## HTML 语义化
+
+​	比较可读，易读，对人比较友好，虽然全部用div也可以，但是明显没有h1，p，ul，li这种清晰，假设不是给人看，给搜索引擎看，比如爬虫看到下面1的代码根本看不出来啥，但是看2就很容易分清网页的主次关系，也很容易通过正确的搜索结果返回给用户，`h1`标签就代表是标题；`p`里面的就是段落详细内容，权重肯定没有标题高，`strong`就是加粗的强调的内容，全部都用`<div>`标签，那搜索引擎将很难理解我们网页的内容
+
+​	为了加强 HTML 语义化，HTML5 标准中又增加了`header` `section` `article`等标签。因此，书写 HTML 时，语义化是非常重要的，否则 W3C 也没必要辛辛苦苦制定出这些标准来。
+
+```jsx
+// 1
+<div>
+  <div></div>
+</div>
+
+// 2
+<div>
+  <h1></h1>
+  <p></p>
+</div>
+```
+
+## 布局
+
+### 盒模型宽度计算
+
+```js
+// offsetWidth = 内容宽度 + 内边距 + 边框，无外边距
+// box-sizing: border-box (width = 内容宽度 + 内边距 + 边框，无外边距)
+document.getElementById('div').offsetWidth
+```
+
+### margin纵向重叠
+
+- 相邻元素的margin-top和margin-bottom会发生重叠，取大的
+- 空的内容也会重叠，被忽略掉
+
+### margin 负值
+
+- maigin-top和left，该元素会向上，向左移动
+- margin-bottom 和 right，自身不受影响下方元素和右侧元素分别上移，左移
+
+### BFC的理解和应用
+
+​	Block format context，块级格式化上下文
+
+​	它是一块独立的渲染区域，内部元素的渲染不会影响边界以外的元素
+
+​	形成BFC的常见情况如下：
+
+- float 不是 none
+- position 是absolute或fixed
+- overflow 不是visible
+- display 是 flex，inline-block等
+
+​    常见应用是清除浮动
+
+```html
+<style>
+  .left {
+    float: left;
+  }
+</style>
+<div class="container">
+	<img src="xxx" class="left" />
+  <p>文字</p>
+</div>
+```
+
+​	如上所示，img设置浮动以后直接脱离文档流，所导致的情况就是没有撑开container，且p还是独占一行
+
+```jsx
+<style>
+  .left {
+    float: left;
+  }
+  .bfc { 
+    overflow: hidden // 触发元素BFC
+  }
+</style>
+<div class="container bfc">
+	<img src="xxx" class="left" />
+  <p class="bfc">文字</p>
+</div>
+```
+
+​	如上，container完全被撑开了，包裹住了图片和文字，并且文字没有独占一行的同时还在img的右侧，一起占了一行
+
+### float 布局
+
+​	圣杯和双飞翼是三栏布局，中间一栏最先加载和渲染（内容最重要）
+
+​	两侧内容固定，中间随着宽度自适应
+
+​	技术要点：
+
+1. float 布局，两侧使用margin 负值，以便和中间内容横向重叠，
+2. 防止中间内容被两侧覆盖，一个用padding（圣杯），一个用margin（双飞翼）
+
+#### 圣杯布局
+
+```jsx
+<div id="header"></div>
+<div id="container">
+  <div id="center" class="column"></div>
+  <div id="left" class="column"></div>
+  <div id="right" class="column"></div>
+</div>
+<div id="footer"></div>
+```
+
+```less
+#container {
+  padding-left: 200px;
+  padding-right: 200px;
+}
+.column {
+  float: left;
+}
+#center {
+  width: 100%;
+}
+#left {
+  width: 200px;
+  margin-left: -100%;
+  right: 200px;
+  position: relatove;
+}
+#right {
+  width: 150px;
+  margin-right: -150px;
+  // margin-right负值可以理解为自身的宽度在外界来看缩小了150px，配合前面margin负值理解
+  // 设置为自己的宽度值后，这样就在外界看来没有宽度了
+}
+#footer {
+  clear: both; // 去浮动
+}
+```
+
+
+
+#### 双飞翼布局
+
+```jsx
+<div id="main" class="col">
+	<div id="main-wrap">
+  </div>
+</div>
+<div id="left" class="col"></div>
+<div id="right" class="col"></div>
+```
+
+```less
+.col {
+  float: left; 
+}
+#main {
+  width: 100%;
+  height: 200px;
+}
+#main-wrap {
+  margin: 0 200px 0 150px;
+}
+#left {
+  width: 200px;
+  height: 200px;
+  margin-left: -100%;
+}
+#right {
+  width: 200px;
+  height: 200px;
+  margin-left: -190px;
+}
+```
+
+
+
+#### 手写clearfix
+
+​	所有 float 元素的父容器，一般情况下都应该加`clearfix`这个 class。
+
+```less
+.clearfix:after {
+  content: '';
+  display: table;
+  clear: both;
+}
+.clearfix {
+  *zoom: 1; /* 兼容 IE 低版本 */
+}
+```
+
+### flex 布局
+
+- flex-direction - 主轴的方向
+- justify-content - 主轴对其方式
+- align-items - 和主轴垂直的方向对其方式
+- flex-wrap - 是不是换行
+- align-self - 子元素在交叉轴的对其方式
+
+flex实现一个三点的骰子
+
+```jsx
+<div id="box">
+  <span class="item"></span>
+  <span class="item"></span>
+  <span class="item"></span>
+</div>
+```
+
+```less
+#box {
+  display: flex;
+  justify-content: space-between;
+}
+.item:nth-child(2) {
+  align-self: center;
+}
+.item:nth-child(3) {
+  align-self: flex-end;
+}
+```
+
+
+
+## 定位
+
+​	absolute是依据最近的已定位的父元素定位，找不到的话就是body
+
+### 水平居中
+
+- inline 元素：`text-align: center;`
+- block 元素：`margin: auto;`
+- 绝对定位元素：可结合`left`和`margin`实现，但是必须知道宽度。
+
+```less
+.container {
+    position: relative;
+    width: 500px;
+}
+.item {
+    width: 300px;
+    height: 100px;
+    position: absolute;
+    left: 50%; // 1
+    margin-left: -150px; // 2
+}
+```
+
+### 垂直居中
+
+- inline 元素：可设置`line-height`的值等于`height`值，如单行文字垂直居中
+- 绝对定位元素
+
+```js
+// 1. 可结合`left`和`margin`实现，兼容性好
+// 缺点：必须知道尺寸。
+.container {
+    position: relative;
+    height: 200px;
+}
+.item {
+    width: 80px;
+    height: 40px;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    margin-top: -20px;
+    margin-left: -40px;
+}
+```
+
+```less
+// 2. 结合`transform`实现居中，不需要提前知道尺寸
+// 缺点：兼容性不好
+.container {
+    position: relative;
+    height: 200px;
+}
+.item {
+    width: 80px;
+    height: 40px;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+```
+
+```less
+// 3. 结合`margin: auto`，不需要提前知道尺寸，兼容性好。
+.container {
+    position: relative;
+    height: 300px;
+}
+.item {
+    width: 100px;
+    height: 50px;
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    margin: auto;
+}
+```
+
+
+
+## 图文样式
+
+### line-height如何继承
+
+- 写具体数值，如30px，则继承该值
+- 写比例，如 2 / 1.5，则继承该比例
+- 写百分比，如200%，则继承计算出来的值
+
+```less
+body {
+  font-size: 20px;
+  line-height: 30px; // 1
+  line-height: 1.5; // 2
+  line-height: 200%; // 3
+}
+p {
+  font-size: 16px;
+  // 1 -> line-height: 30px;
+  // 2 -> line-height: 16 * 1.5 = 24px;
+  // 3 -> line-height: 20 * 200% = 40px;
+}
+```
+
+
+
+## 响应式
+
+### rem
+
+​	是一个长度单位，相对于跟元素，r 是 root 的意思
+
+```less
+html {
+  font-size: 100px;// 1rem = 100px
+}
+div {
+  width: 0.16rem;
+}
+```
+
+- media-query（CSS3），可以根据不同屏幕的宽度设置根元素 font-size
+
+```js
+@media only screen and (max-width: 374px) {
+  // 表示iphone5(320px)或更小, 因为iphone6/7/8...最小是375px
+  html {
+    font-size: 86px;
+  }
+}
+@media only screen and (min-width: 375px) and (max-width: 413px){
+  // iphone6/7/8
+  html {
+    font-size: 100px;
+  }
+}
+// 375/320 === 100/86 就这么得来的
+```
+
+​	em 也是相对长度单位，不过相对于父元素，不常用
+
+
+
+### vw/vh
+
+​	rem的弊端，具有阶梯性
+
+```js
+window.screen.height // 屏幕高度
+window.innerHeight // 网页视口高度，减掉地址栏啥啥的，=== 100vh
+document.body.clientHeight // body高度
+
+vw 和 vh 是网页视口宽度高度的百分之1
+vmax 和 vmin -> 哪个大以哪个为准，比如vh大于vw，则1vmax = 1vh
+```
+
+
+
 # JS基础 - 变量类型和计算
 
 ## 原始类型
@@ -473,15 +856,40 @@ class Child extends Parent {
 
 # JS基础 - 原型和原型链
 
-​	当我们创建一个对象时 `let obj = { age: 25 }`，我们可以发现能使用很多种函数，但是我们明明没有定义过它们
-
 ​	打印obj，你发现`obj.__proto__.constructor.prototype === obj.__proto__`
 
 ​	得出结论，构造函数的原型（`prototype`）又指向实例对象的原型（`__proto__`）
 
+​	所有从原型或更高级原型中得到、执行的方法，其中的`this`在执行时，就指向了当前这个触发事件执行的对象。因此`printName`和`alertName`中的`this`都是`f`。
+
 # JS基础 - 作用域和闭包
 
 ​	闭包的定义其实很简单：函数 A 内部有一个函数 B，函数 B 可以访问到函数 A 中的变量，那么函数 B 就是闭包。
+
+​	题目：现在有个 HTML 片段，要求编写代码，点击编号为几的链接就`alert`弹出其编号
+
+```html
+<ul>
+    <li>编号1，点击我请弹出1</li>
+    <li>2</li>
+    <li>3</li>
+    <li>4</li>
+    <li>5</li>
+</ul>
+```
+
+```js
+var list = document.getElementsByTagName('li');
+for (var i = 0; i < list.length; i++) {
+    list[i].addEventListener('click', function(i){
+        return function(){
+            alert(i + 1)
+        }
+    }(i), true)
+}
+```
+
+
 
 # JS基础 - 其他
 
