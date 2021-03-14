@@ -679,6 +679,11 @@ vmax 和 vmin -> 哪个大以哪个为准，比如vh大于vw，则1vmax = 1vh
 
 ## 对象类型
 
+## 类型转换
+
+- 隐式类型转换：==	字符串拼接	if和逻辑运算符
+- 显示类型转换：parseInt，parseFloat，toString等
+
 ## typeof & instanceof
 
 ​	instanceof内部机制是通过原型链判断的
@@ -782,9 +787,13 @@ function deepClone(obj) {
   Reflect.ownKeys(newObj).forEach(key => {
     newObj[key] = isObject(obj[key]) ? deepClone(obj[key]) : obj[key]
   })
-
   return newObj
 }
+  /*for(let key on obj) {
+    if(obj.hasOwnProperty(key)){
+      保证key不是原型上的属性
+    }
+  }*/
 ```
 
 ## 手写 instanceof
@@ -808,7 +817,7 @@ function myInstanceof(left, right) {
 - 变量提升
 - `var` 在全局作用域下声明变量会导致变量挂载在 `window` 上
 - 块级作用域
-- `let` 和 `const` 作用基本一致，但是后者声明的变量不能再次赋值
+- `let` 和 `const` 作用基本一致，但是后者声明的变量不能再次赋值且必须有初始值
 
 # JS基础 - 继承
 
@@ -864,7 +873,11 @@ class Child extends Parent {
 
 # JS基础 - 作用域和闭包
 
-​	闭包的定义其实很简单：函数 A 内部有一个函数 B，函数 B 可以访问到函数 A 中的变量，那么函数 B 就是闭包。
+- 作用域就是某个变量的合法的使用范围，自由变量是不在当前作用域的变量
+
+- 闭包的定义其实很简单：函数 A 内部有一个函数 B，函数 B 可以访问到函数 A 中的变量，那么函数 B 就是闭包。
+
+- 作用域有一些特殊的情况，比如函数作为参数被传递，函数作为返回值被返回，就是函数定义的地方和被执行的地方是不一样的。在用这些函数的时候会带着一些不属于当前作用域的变量，就形成了一种闭包
 
 ​	题目：现在有个 HTML 片段，要求编写代码，点击编号为几的链接就`alert`弹出其编号
 
@@ -889,13 +902,19 @@ for (var i = 0; i < list.length; i++) {
 }
 ```
 
+​	闭包导致变量会常驻内存，得不到释放
 
+## this
+
+​	上面的闭包作用域告诉我们，所有的自由变量是在函数定义的地方确定的，而不是在函数执行的地方确定的，而this恰恰相反。只有执行的时候才能确定this
+
+- 箭头函数里没有this，看到this的话就找它的外面的函数，外面函数的this是啥就是啥
 
 # JS基础 - 其他
 
 ## map, filter, reduce
 
-​	map 是对每个数组做操作返回
+​	map 是对每个数组做操作返回对应数组
 
 ​	filter 是只返回为true的
 
@@ -981,13 +1000,46 @@ function create() {
 }
 ```
 
-​	
+
 
 # JS基础 - 异步
 
 ## Generator
 
 ​	通过 * 来声明generator函数，执行它普通函数不同，会返回一个迭代器，要执行迭代器的next才会继续往下执行，第一次执行时，会暂停在第一个yield处，并向外返回一个值。如果传参数的话，会代替上一个yield的返回值
+
+
+
+## Promise
+
+- then 一般返回 resolved 状态的Promise，里面有报错则返回 rejected
+- catch 一般也返回 resolved 状态的Promise，里面有报错则返回 rejected 
+
+⚠️ 也就是说，不管then也好，catch也好，只要没报错，都是返回的resolved状态的promise
+
+​	
+
+## async / await
+
+​	await 后面可以跟 Promise，也可以跟 async 函数。
+
+​	执行 async 函数，返回的是 Promise，await 相当于 Promsie 的 then
+
+```js
+async function test() {
+  console.log(111)
+  await fn()// fn 里的代码像Promise里的executor会立即执行
+  // await 下面所有的内容都可以理解为放到callback里面的代码
+  console.log(222)
+}
+test()
+console.log('end')
+// 111 'end' 123
+
+await fn 为了方便理解可以想象作fn.then
+```
+
+
 
 ## 常用定时器
 
@@ -998,13 +1050,32 @@ function create() {
 
 # JS 异步进阶
 
-​	大家也知道了当我们执行 JS 代码的时候其实就是往执行栈中放入函数，当遇到异步的代码时，会被**挂起**并在需要执行的时候加入到 Task（有多种 Task） 队列中。一旦执行栈为空，Event Loop 就会从 Task 队列中拿出需要执行的代码并放入执行栈中执行，所以本质上来说 JS 中的异步还是同步行为。
+## Event Loop
 
-​	不同的任务源会被分配到不同的 Task 队列中，任务源可以分为 **微任务**（microtask） 和 **宏任务**
+​	event loop 就是异步回调的实现原理
 
-​	微任务包括 `process.nextTick` ，`promise` ，`MutationObserver`。
+​	当同步代码执行完，调用栈空了以后就会启动这个 Event Loop 机制，会到异步函数队列（Callback Queue）去找。setTimeout到时间了以后就会把回调推到异步函数队列中。Event Loop就会把这个回调推到调用栈
 
-​	宏任务包括 `script` ， `setTimeout` ，`setInterval` ，`setImmediate` ，`I/O` ，`UI rendering`。
+​	dom事件的回调也是用event loop实现的，虽然也把它放到异步函数队列，但是不能把它理解为异步
+
+### 微任务和宏任务
+
+​	微任务执行时机比宏任务要早，其实当调用栈空时，会尝试DOM渲染，然后再触发event loop
+
+- 宏任务：DOM渲染完后触发
+- 微任务：DOM渲染前触发
+- 可以通过代码验证，技巧alert会阻塞DOM渲染，阻塞JS执行
+
+​	微任务microtask包括 `process.nextTick` ，`promise` ，`async/await`，`MutationObserver`。
+
+​	宏任务macrotask包括 `script` ， `setTimeout` ，`setInterval` ，`Ajax`，`DOM事件`，`setImmediate` ，`I/O` ，`UI rendering`。
+
+​	其实微任务是ES6语法规定的，宏任务是浏览器规定的，这个是微任务先执行的根本原因，所以现在是：
+
+1. 调用栈清空
+2. 执行当前的微任务
+3. 尝试DOM渲染
+4. 触发`Event Loop`机制，执行当前的宏任务
 
 # JS-Web-API-DOM
 
@@ -1022,25 +1093,118 @@ function create() {
 
 # JS-Web-API-Ajax
 
+## XMLHttpRequest
+
+```js
+var xhr = new XMLHttpRequest()
+xhr.onreadystatechange = function () {
+    // 这里的函数异步执行，可参考之前 JS 基础中的异步模块
+    if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+            alert(xhr.responseText)
+        }
+    }
+}
+// Get请求 false是异步
+xhr.open("GET", "/api", false)
+xhr.send(null)
+// Post请求
+xhr.open("POST", "/api", false)
+const postData = { x:1 }
+xhr.send(JSON.stringify(postData))
+```
+
+## 跨域
+
+url 哪些地方不同算作跨域？
+
+*   协议
+*   域名
+*   端口
+
+​    但是 HTML 中几个标签能逃避过同源策略——`<script src="xxx">`、`<img src="xxxx"/>`、`<link href="xxxx">`，这三个标签的`src/href`可以加载其他域的资源，不受同源策略限制。
+
+​	JSONP就是让服务器会给我们返回一个JS文件，里面是函数，如下，我们加载这个文件以后就会执行这个函数
+
+```js
+callback({ x: 1 })
+```
+
+​	然后我们就可以这样拿到值
+
+```jsx
+<script>
+  window.callback = function (data) {
+    // 这是我们跨域得到信息
+    console.log(data)
+  }
+</script>
+```
+
 # JS-Web-API-存储
 
-# http 面试题
+## cookie
 
-# 开发环境
+`document.cookie = 'a=100; b=200'`
 
-# 运行环境
+如果两次设置一样的话就会覆盖，不一样的话就会覆盖
+
+此外服务端也可以修改cookie
+
+在H5出来之前唯一能做本地存储的东西，但它本质其实也不是用来做存储的，而是用来浏览器和服务端通信的
+
+但是 cookie 有它致命的缺点：
+
+*   存储量太小，只有 4KB
+*   所有 HTTP 请求都带着，会影响获取资源的效率
+
+localStorage 和 sessionStorage太简单就不记了，存储量5MB左右
+
+​	另外一个小技巧，针对`localStorage.setItem`，使用时尽量加入到`try-catch`中，某些浏览器是禁用这个 API 的，要注意。
+
+# ^_^
+
+​	如果有括号，前面的语句要加分号
+
+```js
+const x = '123'
+(function() {
+  ...
+})()
+// 编译器会以为你在执行下面这句, 把123当函数
+const x = '123'()
+```
 
 
 
+for in（包括 forEach for）是常规的同步遍历
 
+for of 常用于异步的遍历 ?????????????
 
+```js
+let nums = [1, 2, 3]
+(async function() {
+  for(let i in nums) {
+    const res = await muti(i)
+    console.log(res)
+  }
+})()
 
+(async function() {
+  for(let i of nums) {
+    const res = await muti(i)
+    console.log(res)
+  }
+})()
 
-
-
-
-
-
+function muti(num) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve(num * num)
+    }, 1000)
+  })
+}
+```
 
 
 
